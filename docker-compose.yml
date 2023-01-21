@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  broker:
+    build: ./mqtt-broker
+    ports:
+      - 1883:1883
+      - 8888:8888
+    depends_on:
+      - persistence_db
+      - mqemitter_db
+    environment:
+      MONGO_URL: mongodb://persistence_db/aedes-clusters
+      REDIS_URL: redis://mqemitter_db:6379
+
+  persistence_db:
+    image: mongo:6.0.2
+
+  mqemitter_db:
+    image: redis:7.0.5-alpine
+
+  node_red:
+    image: nodered/node-red:latest
+    ports:
+      - 1880:1880
+    depends_on:
+      - broker
+    volumes:
+      - node_red_data:/data
+
+  time_series_db:
+    image: influxdb:1.8.10-alpine
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+
+  visualization:
+    image: grafana/grafana:9.3.2
+    ports:
+      - 3000:3000
+    depends_on:
+      - time_series_db
+
+volumes:
+  node_red_data:
+  influxdb_data:
